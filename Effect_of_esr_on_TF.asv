@@ -1,0 +1,70 @@
+%% EET for analyzing effect of equivalent series resistance (ESR) of capacitor on system transfer function
+% Frequency response of LC filter without and with capacitor Esr.
+% Gold(s) = transfer function with Resr = 0 (estra element = short)
+% G(s) = transfer function with Resr (with extra element)
+
+s = tf('s'); % define s variable
+
+% Circuit parameters
+
+L = 100e-6; % filter inductance
+C = 1e-6; % filter capacitance
+R = 100; % load resistance
+Resr = 2; %equivalent series resistance
+
+% "Old" transfer function, with Resr = 0
+wold = 1/sqrt(L*C);
+Qold = R*sqrt(C/L);
+Gold = 1/(1 + (1/Qold)*(s/wold) + (s/wold)^2);
+
+% Impedances
+Z = tf(Resr,1);
+ZN = 1/(s*C);
+ZD = (1/(s*C))*(1 + (1/Qold)*(s/wold) + (s/wold)^2)/(1 + s*L/R);
+
+% Correction factor
+Correction =  minreal((1+Z/ZD)/(1+Z/ZN)); % minreal funtion does pole zero cancelation and resulting transfer function has minimal order but same characteristics as nn reduced transfer function
+
+% New transfer function 
+G = minreal(Gold * Correction);
+
+fmin = 100; % minimum frequency = 100Hz;
+fmax = 1e6; % maximum frequency = 1MHz;
+
+% Set Bode plot options
+BodeOptions =  bodeoptions;
+BodeOptions.FreqUnits = 'Hz'; % ourr frequencies are in unit Hz, not in rad/s
+BodeOptions.Xlim = [fmin fmax]; % frequency axis limits
+BodeOptions.Ylim = {[20,60];[-90,90]}; % magnitude and phase axis limits
+BodeOptions.Grid = 'on'; % include grid
+
+% Define frequency-response plot title for impedances plots
+BodeOptions.Title.String = 'ZN, ZD and Resr';
+% Plot magnitude and phase responses of ZN, ZD and Z
+Zfigure = figure(1);
+bode(ZN,BodeOptions,'g'); % Plot ZN
+hold on;
+bode(ZD,BodeOptions,'c'); % Plot ZD
+bode(Z,BodeOptions,'r'); % Plot Z
+hold off;
+% Observe impedance interactions
+
+% Making frequency-response plots look better
+h = findobj(gcf,'type','line'); % searching for all the lines that are plotted in the current figure, and storing them in a variable 'h'. gcf is simply get current figure.
+set(h,'LineWidth',2); % thicker line width
+Axis_handles=get(Zfigure,'Children'); % storing child objects of the object Zfigure in 3*1 array/vector, child objects include axis labels, title, ticks that have benn plotted in the figure. Axis_handles store all these child objects in a vector and we can manipulate each child object by manipulating vector components
+axes(Axis_handles(3)); % setting the current axes to third child object of Zfigure object whose child objects are stored in Axis_handles vector, the child objects are axes objects meaning they are container with coordinate system properties
+ax = gca; % storing Axis_handles(3)/current axes in ax variable
+ax.LineWidth = 1;
+ax.GridAlpha = 0.4; % setting transparency of current grid
+
+legend('ZN','ZD','Resr','Location','northwest');
+
+% Frequency-response plot title and limits for G plots
+BodeOptions.Title.String = 'Gold amd G';
+BodeOptions.Ylim = {[-60,30];[-180,0]};
+
+
+
+
+
